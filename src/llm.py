@@ -8,17 +8,19 @@ class LLM:
         self.client = OpenAI()
 
     def generate_daily_report(self, markdown_content, dry_run=False):
-        prompt = f"以下是项目的最新进展，根据功能合并同类项，形成一份简报，至少包含：1）新增功能；2）主要改进；3）修复问题；:\n\n{markdown_content}"
+        system_prompt = "你是一名专业的项目助理，请根据输入的项目更新进展文本，总结并整合相同类别的内容，形成一份简报（用于汇报），至少包含的类别有：新增功能、主要改进、修复问题。要求使用中文。"
+
         if dry_run:
             with open("daily_progress/prompt.txt", "w+") as f:
-                f.write(prompt)
+                f.write(f"{system_prompt}\n\n{markdown_content}")
             return "DRY RUN"
 
         print("Before call GPT")
         response = self.client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": markdown_content}
             ]
         )
         print("After call GPT")
