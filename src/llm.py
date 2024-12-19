@@ -1,15 +1,32 @@
 import os
 import json
+import httpx
 from openai import OpenAI  # 导入OpenAI库用于访问GPT模型
 from logger import LOG  # 导入日志模块
 
 class LLM:
     def __init__(self, prompt_filename='report_prompt.txt'):
         # 创建一个OpenAI客户端实例
-        self.client = OpenAI()
+        self.client = self.create_llm_client()
         # 从TXT文件加载提示信息
         with open(f"prompts/{prompt_filename}", "r", encoding='utf-8') as file:
             self.system_prompt = file.read()
+
+    @staticmethod
+    def create_llm_client():
+        api_key = os.environ["OPENAI_API_KEY"]
+        if "OPENAI_BASE_URL" in os.environ:
+            base_url = os.environ["OPENAI_BASE_URL"]
+            return OpenAI(
+                base_url=base_url,
+                api_key=api_key,
+                http_client=httpx.Client(
+                    base_url=base_url,
+                    follow_redirects=True,
+                ),
+            )
+        else:
+            return OpenAI(api_key=api_key)
 
     def generate_daily_report(self, markdown_content, dry_run=False):
         # 使用从TXT文件加载的提示信息
