@@ -2,9 +2,9 @@
 # 守护进程控制脚本
 
 # 定义守护进程 Python 脚本的路径
-DAEMON_PATH="./src/daemon_process.py"
+DAEMON_PATH="./src/hn_daemon.py"
 # 定义守护进程的名称
-DAEMON_NAME="DaemonProcess"
+DAEMON_NAME="HackerNewsObserver"
 # 定义日志文件的路径
 LOG_FILE="./logs/$DAEMON_NAME.log"
 # 定义守护进程的 PID 文件路径，用于存储进程号
