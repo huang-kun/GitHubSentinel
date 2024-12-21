@@ -1,3 +1,5 @@
+import os
+import httpx
 import json
 import requests
 from openai import OpenAI  # 导入OpenAI库用于访问GPT模型
@@ -13,12 +15,28 @@ class LLM:
         self.config = config
         self.model = config.llm_model_type.lower()  # 获取模型类型并转换为小写
         if self.model == "openai":
-            self.client = OpenAI()  # 创建OpenAI客户端实例
+            self.client = self.create_openai_client()  # 创建OpenAI客户端实例
         elif self.model == "ollama":
             self.api_url = config.ollama_api_url  # 设置Ollama API的URL
         else:
             LOG.error(f"不支持的模型类型: {self.model}")
             raise ValueError(f"不支持的模型类型: {self.model}")  # 如果模型类型不支持，抛出错误
+        
+    @staticmethod
+    def create_openai_client():
+        api_key = os.environ["OPENAI_API_KEY"]
+        if "OPENAI_BASE_URL" in os.environ:
+            base_url = os.environ["OPENAI_BASE_URL"]
+            return OpenAI(
+                base_url=base_url, 
+                api_key=api_key,
+                http_client=httpx.Client(
+                    base_url=base_url,
+                    follow_redirects=True,
+                ),
+            )
+        else:
+            return OpenAI(api_key=api_key)
 
     def generate_report(self, system_prompt, user_content):
         """
@@ -40,6 +58,49 @@ class LLM:
             return self._generate_report_ollama(messages)
         else:
             raise ValueError(f"不支持的模型类型: {self.model}")
+    
+    def is_image_url(self, url):
+        for ext in ['.png', '.jpeg', '.jpg']:
+            if url.endswith(ext):
+                return True
+        return False
+
+    def read_image_content(self, image_url):
+        """
+        理解图片内容
+        https://platform.openai.com/docs/guides/vision?lang=node
+        """
+        if self.model != 'openai' or not self.is_image_url(image_url):
+            return None
+        
+        response = self.client.chat.completions.create(
+            model=self.config.openai_model_name,  # 使用配置中的OpenAI模型名称
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant for understanding image."
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text", 
+                            "text": "What's in this image?"
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": image_url,
+                            },
+                        },
+                    ],
+                }
+            ],
+            max_tokens=300,
+        )
+
+        choice = response.choices[0]
+        return choice.message.content
 
     def _generate_report_openai(self, messages):
         """

@@ -75,7 +75,23 @@ class ReportGenerator:
         
         LOG.info(f"Hacker News 每日汇总报告已保存到 {report_file_path}")
         return report, report_file_path
+    
+    def generate_reddit_report(self, file_path):
+        """
+        生成Reddit热点话题报告
+        """
+        with open(file_path, 'r') as file:
+            content = file.read()
 
+        system_prompt = self.prompts.get("reddit")
+        report = self.llm.generate_report(system_prompt, content)
+        
+        report_file_path = os.path.splitext(file_path)[0] + "_topic.md"
+        with open(report_file_path, 'w+') as report_file:
+            report_file.write(report)
+
+        LOG.info(f"Reddit 热点话题报告已保存到 {report_file_path}")
+        return report, report_file_path
 
     def _aggregate_topic_reports(self, directory_path):
         """
