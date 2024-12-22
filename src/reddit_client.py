@@ -28,16 +28,16 @@ class RedditClient:
     def fetch_hot_feeds(self, count=5):
         LOG.debug("准备获取Reddit的热门帖子。")
         try:
-            feeds = []
-            for submission in self.reddit.subreddit("all").hot(limit=count):
-                feeds.append(self.get_feed_info(submission))
+            submissions = self.reddit.subreddit("all").hot(limit=count)
+            feeds = list(map(self.get_feed_info, submissions))
             LOG.info(f"成功获取 {len(feeds)} 条Reddit热帖。")
             return feeds
         except Exception as e:
             LOG.error(f"获取Reddit的热门帖子失败：{str(e)}")
             return []
 
-    def get_feed_info(self, submission):
+    @staticmethod
+    def get_feed_info(submission):
         feed = {}
         feed['title'] = submission.title
         feed['group'] = submission.subreddit.display_name
