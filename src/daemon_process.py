@@ -8,6 +8,7 @@ from datetime import datetime  # 导入 datetime 模块用于获取当前日期
 from config import Config  # 导入配置管理类
 from github_client import GitHubClient  # 导入GitHub客户端类，处理GitHub API请求
 from hacker_news_client import HackerNewsClient
+from reddit_client import RedditClient
 from notifier import Notifier  # 导入通知器类，用于发送通知
 from report_generator import ReportGenerator  # 导入报告生成器类
 from llm import LLM  # 导入语言模型类，可能用于生成报告内容
@@ -51,6 +52,28 @@ def hn_daily_job(hacker_news_client, report_generator, notifier):
     notifier.notify_hn_report(date, report)
     LOG.info(f"[定时任务执行完毕]")
 
+def reddit_job(reddit_client, config, llm, report_generator, notifier):
+    LOG.info("[开始执行定时任务]Reddit 热点话题")
+    # 获取当前日期，并格式化为 'YYYY-MM-DD' 格式
+    date = datetime.now().strftime('%Y-%m-%d')
+    # 生成每日汇总报告的目录路径
+    directory_path = os.path.join('reddit', date)
+    # 生成每日汇总报告并保存
+    feeds = reddit_client.fetch_hot_feeds(count=5)
+    if config.llm_model_type == 'openai' and config.llm_model_type in ["gpt-4o", "gpt-4o-mini"]:
+        for feed in feeds:
+            content_url = feed.get('content_url', '')
+            if llm.is_image_url(content_url):
+                LOG.debug(f"开始解读图片内容 {content_url}")
+                image_desc = llm.read_image_content(content_url)
+                if isinstance(image_desc, str) and image_desc:
+                    feed['image_description'] = image_desc
+    
+    file_path = reddit_client.export_feeds(feeds=feeds)
+    report, report_file_path = report_generator.generate_reddit_report(file_path)
+    notifier.notify_reddit_report(date, report)
+    LOG.info(f"[定时任务执行完毕]")
+
 
 def main():
     # 设置信号处理器
@@ -59,6 +82,7 @@ def main():
     config = Config()  # 创建配置实例
     github_client = GitHubClient(config.github_token)  # 创建GitHub客户端实例
     hacker_news_client = HackerNewsClient() # 创建 Hacker News 客户端实例
+    reddit_client = RedditClient()
     notifier = Notifier(config.email)  # 创建通知器实例
     llm = LLM(config)  # 创建语言模型实例
     report_generator = ReportGenerator(llm, config.report_types)  # 创建报告生成器实例
@@ -66,7 +90,8 @@ def main():
 
     # 启动时立即执行（如不需要可注释）
     # github_job(subscription_manager, github_client, report_generator, notifier, config.freq_days)
-    hn_daily_job(hacker_news_client, report_generator, notifier)
+    # hn_daily_job(hacker_news_client, report_generator, notifier)
+    reddit_job(reddit_client, config, llm, report_generator, notifier)
 
     # 安排 GitHub 的定时任务
     schedule.every(config.freq_days).days.at(
@@ -78,6 +103,9 @@ def main():
 
     # 安排 hn_daily_job 每天早上10点执行一次
     schedule.every().day.at("10:00").do(hn_daily_job, hacker_news_client, report_generator, notifier)
+
+    # 安排 reddit_job 每天早上9点执行一次
+    schedule.every().day.at("09:00").do(reddit_job, reddit_client, config, llm, report_generator, notifier)
 
     try:
         # 在守护进程中持续运行

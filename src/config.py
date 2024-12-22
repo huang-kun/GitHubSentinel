@@ -10,7 +10,7 @@ class Config:
             config = json.load(f)
             
             self.email = config.get('email', {})
-            self.email['password'] = os.getenv('EMAIL_PASSWORD', self.email.get('password', ''))
+            self.email['password'] = os.getenv('GMAIL_APP_PASSWORD', self.email.get('password', ''))
 
             # 加载 GitHub 相关配置
             github_config = config.get('github', {})

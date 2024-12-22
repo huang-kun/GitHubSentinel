@@ -1,3 +1,4 @@
+import ssl
 import smtplib
 import markdown2
 from email.mime.text import MIMEText
@@ -31,12 +32,31 @@ class Notifier:
             self.send_email(subject, report)
         else:
             LOG.warning("邮件设置未配置正确，无法发送 Hacker News 报告通知")
+
+    def notify_reddit_report(self, date, report):
+        """
+        发送 Reddit 热点话题邮件
+        :param date: 报告日期
+        :param report: 报告内容
+        """
+        if self.email_settings:
+            subject = f"[Reddit] {date} 热点话题"
+            self.send_email(subject, report)
+        else:
+            LOG.warning("邮件设置未配置正确，无法发送 Reddit 报告通知")
     
     def send_email(self, subject, report):
         LOG.info(f"准备发送邮件:{subject}")
+
+        host = self.email_settings['smtp_server']
+        port = self.email_settings['smtp_port']
+        sender = self.email_settings['from']
+        target = self.email_settings['To']
+        password = self.email_settings['password']
+
         msg = MIMEMultipart()
-        msg['From'] = self.email_settings['from']
-        msg['To'] = self.email_settings['to']
+        msg['From'] = sender
+        msg['To'] = target
         msg['Subject'] = subject
         
         # 将Markdown内容转换为HTML
@@ -44,10 +64,11 @@ class Notifier:
 
         msg.attach(MIMEText(html_report, 'html'))
         try:
-            with smtplib.SMTP_SSL(self.email_settings['smtp_server'], self.email_settings['smtp_port']) as server:
+            with smtplib.SMTP_SSL(host=host, port=port) as server:
+                server.set_debuglevel(1)
                 LOG.debug("登录SMTP服务器")
-                server.login(msg['From'], self.email_settings['password'])
-                server.sendmail(msg['From'], msg['To'], msg.as_string())
+                server.login(sender, password)
+                server.sendmail(sender, target, msg.as_string())
                 LOG.info("邮件发送成功！")
         except Exception as e:
             LOG.error(f"发送邮件失败：{str(e)}")

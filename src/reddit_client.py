@@ -8,7 +8,7 @@ import json
 
 '''
 先创建reddit应用，这里是说明文档：
-https://github.com/reddit-archive/reddit/wiki/OAuth2#retrieving-the-access-token
+https://www.reddit.com/prefs/apps/
 
 其中type选择script, redirect uri没有的话可以填写http://localhost:8080
 创建成功后保存client_id, secret

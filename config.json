@@ -6,14 +6,14 @@
         "progress_execution_time": "08:00"
     },
     "email":  {
-        "smtp_server": "smtp.exmail.qq.com",
-        "smtp_port": 465,
-        "from": "pjt@zaijidata.com",
+        "smtp_server": "smtp.gmail.com",
+        "smtp_port": 587,
+        "from": "huangkun3251@gmail.com",
         "password": "",
-        "to": "test@zaijidata.com"
+        "to": "jack-huang-developer@foxmail.com"
     },
     "llm": {
-        "model_type": "ollama",
+        "model_type": "openai",
         "openai_model_name": "gpt-4o-mini",
         "ollama_model_name": "llama3.1",
         "ollama_api_url": "http://localhost:11434/api/chat"
